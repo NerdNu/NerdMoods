@@ -3,9 +3,10 @@ version: ${project.version}
 description: ${project.description}
 website: ${project.url}
 author: totemo
-authors: [totemo, Dumbo52]
+authors: [Dumbo52]
 depend: [ProtocolLib]
 main: nu.nerd.nerdmoods.NerdMoods
+api-version: 1.16
 
 permissions:
     nerdmoods.admin:

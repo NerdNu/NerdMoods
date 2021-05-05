@@ -94,7 +94,7 @@ public class NerdMoods extends JavaPlugin implements Listener {
      * Handle /ptime [day|night|<time>].
      *
      * @param sender the command sender.
-     * @param args command arguments.
+     * @param args   command arguments.
      */
     protected void cmdPtime(CommandSender sender, String[] args) {
         if (!CONFIG.ALLOW_PERSONAL_TIME) {
@@ -179,7 +179,7 @@ public class NerdMoods extends JavaPlugin implements Listener {
      * Handle /prain [on|off].
      *
      * @param sender the command sender.
-     * @param args command arguments.
+     * @param args   command arguments.
      */
     protected void cmdPrain(CommandSender sender, String[] args) {
         if (!CONFIG.ALLOW_PERSONAL_WEATHER) {
@@ -217,7 +217,7 @@ public class NerdMoods extends JavaPlugin implements Listener {
         }
 
         PacketContainer weatherPacket = _protocolManager.createPacket(PacketType.Play.Server.GAME_STATE_CHANGE);
-        weatherPacket.getIntegers().write(0, rain ? 2 : 1);
+        weatherPacket.getGameStateIDs().write(0, rain ? 2 : 1);
         weatherPacket.getFloat().write(0, 0F);
         try {
             _protocolManager.sendServerPacket(player, weatherPacket);
