@@ -140,23 +140,7 @@ public class NerdMoods extends JavaPlugin implements Listener {
             time += 24000;
         }
 
-        // Use reflection to call CraftWorld.getHandle().getTime()
-        // rather than adding an NMS dependency.
-        boolean reflectionSucceeded = false;
-        Long worldTime = 0L;
-        try {
-            Method getHandle = world.getClass().getMethod("getHandle");
-            Object nmsWorld = getHandle.invoke(world);
-            Method getTime = nmsWorld.getClass().getMethod("getTime");
-            worldTime = (Long) getTime.invoke(nmsWorld);
-            reflectionSucceeded = true;
-        } catch (Exception ex) {
-        }
-
-        if (!reflectionSucceeded) {
-            player.sendMessage(Color.RED + "/ptime is not working. Please report this to an admin.");
-            return;
-        }
+        long worldTime = world.getTime();
 
         PacketContainer timePacket = _protocolManager.createPacket(PacketType.Play.Server.UPDATE_TIME);
         timePacket.getLongs().write(0, worldTime);
