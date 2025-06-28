@@ -1,11 +1,10 @@
 package nu.nerd.nerdmoods;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.Objects;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -23,6 +22,7 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import org.jetbrains.annotations.NotNull;
 
 // ----------------------------------------------------------------------------
 /**
@@ -31,7 +31,7 @@ import com.comphenix.protocol.events.PacketEvent;
 public class NerdMoods extends JavaPlugin implements Listener {
     // ------------------------------------------------------------------------
     /**
-     * @see org.bukkit.plugin.java.JavaPlugin#onEnable()
+     * @see JavaPlugin#onEnable()
      */
     @Override
     public void onEnable() {
@@ -39,8 +39,8 @@ public class NerdMoods extends JavaPlugin implements Listener {
         CONFIG = new Configuration(this);
         CONFIG.reload();
 
-        _protocolManager = ProtocolLibrary.getProtocolManager();
-        _protocolManager.addPacketListener(new PacketAdapter(this, ListenerPriority.NORMAL, PacketType.Play.Server.UPDATE_TIME) {
+        protocolManager = ProtocolLibrary.getProtocolManager();
+        protocolManager.addPacketListener(new PacketAdapter(this, ListenerPriority.NORMAL, PacketType.Play.Server.UPDATE_TIME) {
             @Override
             public void onPacketSending(PacketEvent event) {
                 if (event.getPacketType() == PacketType.Play.Server.UPDATE_TIME &&
@@ -50,31 +50,37 @@ public class NerdMoods extends JavaPlugin implements Listener {
                 }
             }
         });
+
+        // Register tab completer
+        NerdMoodsTabCompleter tabCompleter = new NerdMoodsTabCompleter();
+        Objects.requireNonNull(getCommand("ptime")).setTabCompleter(tabCompleter);
+        Objects.requireNonNull(getCommand("prain")).setTabCompleter(tabCompleter);
     }
 
     // ------------------------------------------------------------------------
     /**
-     * @see org.bukkit.plugin.java.JavaPlugin#onDisable()
+     * @see JavaPlugin#onDisable()
      */
     @Override
     public void onDisable() {
-        _protocolManager.removePacketListeners(this);
+        protocolManager.removePacketListeners(this);
     }
 
     // ------------------------------------------------------------------------
     /**
-     * @see org.bukkit.plugin.java.JavaPlugin#onCommand(org.bukkit.command.CommandSender,
-     *      org.bukkit.command.Command, java.lang.String, java.lang.String[])
+     * @see JavaPlugin#onCommand(CommandSender,
+     *      Command, String, String[])
      */
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
         if (command.getName().equalsIgnoreCase("nerdmoods")) {
             if (args.length == 1 && args[0].equalsIgnoreCase("help")) {
                 // Let Bukkit show usage help from plugin.yml.
                 return false;
             } else if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
                 CONFIG.reload();
-                sender.sendMessage(ChatColor.AQUA + getName() + " configuration reloaded.");
+                sender.sendMessage(Component.text(getName() + " configuration reloaded.")
+                        .color(NamedTextColor.AQUA));
                 return true;
             }
             return false;
@@ -98,23 +104,23 @@ public class NerdMoods extends JavaPlugin implements Listener {
      */
     protected void cmdPtime(CommandSender sender, String[] args) {
         if (!CONFIG.ALLOW_PERSONAL_TIME) {
-            sender.sendMessage(ChatColor.RED + "That command is disabled.");
+            sender.sendMessage(Component.text("That command is disabled.").color(NamedTextColor.RED));
             return;
         }
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage("You need to be in-game to use this command.");
             return;
         }
 
-        Player player = (Player) sender;
         World world = player.getWorld();
 
-        long time = world.getFullTime();
         boolean synchronise = false;
         boolean showUsage = false;
+        long time = -1L;
 
         if (args.length == 0) {
             synchronise = true;
+            time = world.getFullTime();
         } else if (args.length == 1) {
             if (args[0].equalsIgnoreCase("day")) {
                 time = 6000L;
@@ -131,29 +137,27 @@ public class NerdMoods extends JavaPlugin implements Listener {
             showUsage = true;
         }
 
-        if (showUsage) {
-            sender.sendMessage(ChatColor.RED + "Usage: /ptime [day|night|<time>]");
+        if (showUsage || time < 0) {
+            sender.sendMessage("Usage: /time [day|night|<number>]");
             return;
         }
 
-        if (time < 0) {
-            time += 24000;
-        }
-
+        world.setTime(time);
         long worldTime = world.getTime();
 
-        PacketContainer timePacket = _protocolManager.createPacket(PacketType.Play.Server.UPDATE_TIME);
+        PacketContainer timePacket = protocolManager.createPacket(PacketType.Play.Server.UPDATE_TIME);
         timePacket.getLongs().write(0, worldTime);
-        timePacket.getLongs().write(1, synchronise ? time : (time == 0 ? -1 : -time));
+        timePacket.getLongs().write(1, synchronise ? time : (time == 0 ? -1 : time));
         try {
-            _protocolManager.sendServerPacket((Player) sender, timePacket);
+            protocolManager.sendServerPacket(player, timePacket);
             if (synchronise) {
                 _ignoringTime.remove(sender);
             } else {
-                _ignoringTime.add((Player) sender);
+                _ignoringTime.add(player);
             }
-            sender.sendMessage(ChatColor.AQUA + (synchronise ? "Normal time resumed." : "Time set to " + time + "."));
-        } catch (InvocationTargetException e) {
+            sender.sendMessage(Component.text(synchronise ? "Normal time resumed." : "Time set to " + time + ".")
+                    .color(NamedTextColor.AQUA));
+        } catch (Exception e) {
             throw new RuntimeException("Cannot send packet " + timePacket, e);
         }
     } // cmdPtime
@@ -165,55 +169,54 @@ public class NerdMoods extends JavaPlugin implements Listener {
      * @param sender the command sender.
      * @param args   command arguments.
      */
+
+    @SuppressWarnings("DataFlowIssue")
     protected void cmdPrain(CommandSender sender, String[] args) {
         if (!CONFIG.ALLOW_PERSONAL_WEATHER) {
-            sender.sendMessage(ChatColor.RED + "That command is disabled.");
+            sender.sendMessage(Component.text("That command is disabled.").color(NamedTextColor.RED));
             return;
         }
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("You need to be in-game to use this command.");
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(Component.text("You need to be in-game to use this command.").color(NamedTextColor.RED));
             return;
         }
 
-        Player player = (Player) sender;
         boolean rain = false;
         boolean synchronise = false;
         boolean showUsage = false;
 
         if (args.length == 0) {
             synchronise = true;
-            rain = player.getLocation().getWorld().hasStorm();
+            rain = player.getWorld().hasStorm();
         } else if (args.length == 1) {
-            if (args[0].equalsIgnoreCase("on")) {
-                rain = true;
-            } else if (args[0].equalsIgnoreCase("off")) {
-                rain = false;
-            } else {
-                showUsage = true;
+            switch (args[0].toLowerCase()) {
+                case "on" -> rain = true;
+                case "off" -> rain = false;
+                default -> showUsage = true;
             }
-        } else if (args.length > 1) {
+        } else {
             showUsage = true;
         }
 
         if (showUsage) {
-            sender.sendMessage(ChatColor.RED + "Usage: /prain [on|off]");
+            sender.sendMessage(Component.text("Usage: /prain [on|off]").color(NamedTextColor.RED));
             return;
         }
 
-        PacketContainer weatherPacket = _protocolManager.createPacket(PacketType.Play.Server.GAME_STATE_CHANGE);
-        weatherPacket.getGameStateIDs().write(0, rain ? 2 : 1);
-        weatherPacket.getFloat().write(0, 0F);
+        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.GAME_STATE_CHANGE);
+        packet.getGameStateIDs().write(0, rain ? 2 : 1);
+        packet.getFloat().write(0, 0F);
+
         try {
-            _protocolManager.sendServerPacket(player, weatherPacket);
-            if (synchronise) {
-                sender.sendMessage(ChatColor.AQUA + "Normal weather resumed.");
-            } else {
-                sender.sendMessage(ChatColor.AQUA + (rain ? "Weather enabled." : "Weather disabled."));
-            }
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException("Cannot send packet " + weatherPacket, e);
+            protocolManager.sendServerPacket(player, packet);
+            sender.sendMessage(Component.text(
+                            synchronise ? "Normal weather resumed." : (rain ? "Weather enabled." : "Weather disabled."))
+                    .color(NamedTextColor.AQUA));
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot send packet " + packet, e);
         }
-    } // cmdPrain
+    }
+// cmdPrain
 
     // ------------------------------------------------------------------------
     /**
@@ -235,11 +238,11 @@ public class NerdMoods extends JavaPlugin implements Listener {
     /**
      * Used to access ProtocolLib functions.
      */
-    protected ProtocolManager _protocolManager;
+    protected ProtocolManager protocolManager;
 
     /**
      * Set of Players ignoring server-wide time and using their own time.
      */
-    protected HashSet<Player> _ignoringTime = new HashSet<Player>();
+    protected HashSet<Player> _ignoringTime = new HashSet<>();
 
 } // class NerdMoods
