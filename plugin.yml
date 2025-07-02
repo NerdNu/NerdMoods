@@ -4,7 +4,6 @@ description: ${project.description}
 website: ${project.url}
 author: totemo
 authors: [Dumbo52, Mats1300]
-depend: [ProtocolLib]
 main: nu.nerd.nerdmoods.NerdMoods
 api-version: 1.21
 

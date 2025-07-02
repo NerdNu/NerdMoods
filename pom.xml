@@ -36,14 +36,6 @@
 			<version>1.21.6-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
-
-		<!-- ProtocolLib -->
-		<dependency>
-			<groupId>com.comphenix.protocol</groupId>
-			<artifactId>ProtocolLib</artifactId>
-			<version>5.3.0</version>
-			<scope>provided</scope>
-		</dependency>
 	</dependencies>
 
 	<repositories>
@@ -51,12 +43,6 @@
 		<repository>
 			<id>papermc</id>
 			<url>https://repo.papermc.io/repository/maven-public/</url>
-		</repository>
-
-		<!-- ProtocolLib and others -->
-		<repository>
-			<id>dmulloy2-repo</id>
-			<url>https://repo.dmulloy2.net/repository/public/</url>
 		</repository>
 	</repositories>
 
