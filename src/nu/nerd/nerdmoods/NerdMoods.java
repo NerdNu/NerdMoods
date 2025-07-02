@@ -15,6 +15,7 @@ import java.util.Objects;
 /**
  * Main plugin class.
  */
+@SuppressWarnings("unused")
 public class NerdMoods extends JavaPlugin {
 
     /**
