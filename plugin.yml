@@ -5,7 +5,7 @@ website: ${project.url}
 author: totemo
 authors: [Dumbo52, Mats1300]
 main: nu.nerd.nerdmoods.NerdMoods
-api-version: 1.21
+api-version: 1.20
 
 permissions:
     nerdmoods.admin:
