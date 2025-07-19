@@ -1,18 +1,18 @@
 NerdMoods
 =========
-Provides personalised weather and time for each player.
+Provides personalised weather and time for each player client side.
 
 Commands
 --------
- * `/prain [off|on]`
+ * `/prain [off|on|reset]`
    * Turns rain (and snow) off or on in the the player's client.
-   * If no argument is given, the player sees the world's actual weather.
+   * `/prain reset` sets it back to server weather.
 
- * `/ptime [day|night|<time>]`
+ * `/ptime [day|night|reset|<time>]`
    * Set the time of day shown in the player's client.
    * `<time>` is a number from 0 to 24000, inclusive and is the number of
      ticks (1/20th of a second) since 6 am.
-   * If no argument is given, the player sees the world's actual time.
+   * `/ptime reset` sets it back to normal server time.
 
 
 Configuration
